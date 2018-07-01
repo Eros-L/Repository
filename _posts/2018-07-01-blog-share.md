@@ -10,6 +10,7 @@ tags:
 ---
 
 [Tomcat]: https://tomcat.apache.org/download-90.cgi
+[Nginx]: http://nginx.org/en/download.html
 
 [deployment_diagram]: https://raw.githubusercontent.com/Eros-L/Eros-L.github.io/master/_posts/image/deployment_diagram.png
 
@@ -25,6 +26,14 @@ tags:
 [tomcat10]: https://raw.githubusercontent.com/Eros-L/Eros-L.github.io/master/_posts/image/tomcat/10.png
 [tomcat11]: https://raw.githubusercontent.com/Eros-L/Eros-L.github.io/master/_posts/image/tomcat/11.png
 [tomcat12]: https://raw.githubusercontent.com/Eros-L/Eros-L.github.io/master/_posts/image/tomcat/12.png
+
+[nginx1]: https://raw.githubusercontent.com/Eros-L/Eros-L.github.io/master/_posts/image/nginx/1.png
+[nginx2]: https://raw.githubusercontent.com/Eros-L/Eros-L.github.io/master/_posts/image/nginx/2.png
+[nginx3]: https://raw.githubusercontent.com/Eros-L/Eros-L.github.io/master/_posts/image/nginx/3.png
+[nginx4]: https://raw.githubusercontent.com/Eros-L/Eros-L.github.io/master/_posts/image/nginx/4.png
+[nginx5]: https://raw.githubusercontent.com/Eros-L/Eros-L.github.io/master/_posts/image/nginx/5.png
+[nginx6]: https://raw.githubusercontent.com/Eros-L/Eros-L.github.io/master/_posts/image/nginx/6.png
+[nginx7]: https://raw.githubusercontent.com/Eros-L/Eros-L.github.io/master/_posts/image/nginx/7.png
 
 
 ## Eclipse下Tomcat+Nginx+Java部署
@@ -62,9 +71,9 @@ tags:
 ### 3、JDBC
 &emsp;到此，我们已经完成了Tomcat的配置，接下来，我们需要实现Java数据库连接(Java Database Connectivity)。<br />
 
->> 在本教程里，我们需要用到的jar包如下:
->> [MySQL Connector/J](https://dev.mysql.com/downloads/connector/j/)
->> [Gson](http://repo1.maven.org/maven2/com/google/code/gson/gson/2.8.5/)
+>> 在本教程里，我们需要用到的jar包如下: <br />
+>> [MySQL Connector/J](https://dev.mysql.com/downloads/connector/j/) <br />
+>> [Gson](http://repo1.maven.org/maven2/com/google/code/gson/gson/2.8.5/) <br />
 
 <br />
 
@@ -123,3 +132,160 @@ if (function.equals("createOrder")) {
 <br />
 ![][tomcat12]
 <br />
+
+### 4、配置Nginx
+&emsp;考虑到实际情况，我们无需在Eclipse中导入Nginx亦可完成负载均衡的实现，因此，接下来的教材将在终端中完成搭建。我们可以在[Nginx][Nginx]官网上获得我们需要的Nginx，在安装Nginx前，我们需要先安装它的依赖PCRE。我们将下载好的Nginx解压，然后再其目录下完成下列操作。若配置成功，在浏览器中前往127.0.0.1:80将会看到nginx的主页。<br />
+![][nginx1]
+<br />
+![][nginx2]
+<br />
+![][nginx3]
+<br />
+![][nginx4]
+<br />
+![][nginx5]
+<br />
+![][nginx6]
+<br />
+
+&emsp;接下来，我们将通过修改/nginx-1.14.0/conf/下的nginx.conf文件实现服务器分流。首先，我们要将#user nobody;改为user root owner;以赋予nginx权限。为了防止监听接口冲突，我们将server中的listen改为8888。location的配置则是对url中的内容进行匹配，匹配的格式有很多种，但我们在这里都不需要用到，只需将所有的地址转向我们的真实服务器即可，其中，proxy_pass http://pml_backend;则是此处的关键语句。最后，我们对upstream进行配置，在upstream中添加我们搭建好的tomcat服务器，然后通过weight，对其权重赋值(默认为1)。至此，我们的搭建已全部完成。<br />
+```
+
+user  root owner; 
+worker_processes  1;
+
+#error_log  logs/error.log;
+#error_log  logs/error.log  notice;
+#error_log  logs/error.log  info;
+
+#pid        logs/nginx.pid;
+
+
+events {
+    worker_connections  1024;
+}
+
+
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+
+    #log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+    #                  '$status $body_bytes_sent "$http_referer" '
+    #                  '"$http_user_agent" "$http_x_forwarded_for"';
+
+    #access_log  logs/access.log  main;
+
+    sendfile        on;
+    #tcp_nopush     on;
+
+    #keepalive_timeout  0;
+    keepalive_timeout  65;
+
+    #gzip  on;
+
+    upstream pml_backend {
+        server 172.18.146.154:8080 weight=1;
+        server 172.18.146.136:8080 weight=3;
+    }
+
+    server {
+        listen       8888;
+
+        #charset koi8-r;
+
+        #access_log  logs/host.access.log  main;
+
+        location / {
+            proxy_pass http://pml_backend;
+            proxy_redirect off;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            client_max_body_size 10m;
+            client_body_buffer_size 128k;
+            proxy_connect_timeout 90;
+            proxy_read_timeout 90;
+            proxy_buffer_size 4k;
+            proxy_buffers 6 32k;
+            proxy_busy_buffers_size 64k;
+            proxy_temp_file_write_size 64k;
+        }
+
+        #error_page  404              /404.html;
+
+        # redirect server error pages to the static page /50x.html
+        #
+        error_page   500 502 503 504  /50x.html;
+        location = /50x.html {
+            root   html;
+        }
+
+        # proxy the PHP scripts to Apache listening on 127.0.0.1:80
+        #
+        #location ~ \.php$ {
+        #    proxy_pass   http://127.0.0.1;
+        #}
+
+        # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000
+        #
+        #location ~ \.php$ {
+        #    root           html;
+        #    fastcgi_pass   127.0.0.1:9000;
+        #    fastcgi_index  index.php;
+        #    fastcgi_param  SCRIPT_FILENAME  /scripts$fastcgi_script_name;
+        #    include        fastcgi_params;
+        #}
+
+        # deny access to .htaccess files, if Apache's document root
+        # concurs with nginx's one
+        #
+        #location ~ /\.ht {
+        #    deny  all;
+        #}
+    }
+
+
+    # another virtual host using mix of IP-, name-, and port-based configuration
+    #
+    #server {
+    #    listen       8000;
+    #    listen       somename:8080;
+    #    server_name  somename  alias  another.alias;
+
+    #    location / {
+    #        root   html;
+    #        index  index.html index.htm;
+    #    }
+    #}
+
+
+    # HTTPS server
+    #
+    #server {
+    #    listen       443 ssl;
+    #    server_name  localhost;
+
+    #    ssl_certificate      cert.pem;
+    #    ssl_certificate_key  cert.key;
+
+    #    ssl_session_cache    shared:SSL:1m;
+    #    ssl_session_timeout  5m;
+
+    #    ssl_ciphers  HIGH:!aNULL:!MD5;
+    #    ssl_prefer_server_ciphers  on;
+
+    #    location / {
+    #        root   html;
+    #        index  index.html index.htm;
+    #    }
+    #}
+
+}
+```
+<br />
+![][nginx7]
+<br />
+
+### 5、总结
+&emsp;想要获得更多的参考，可以访问[项目的开源github](https://github.com/OrderingService/OrderingSystemBackend)查看源码。但是由于项目完成度的问题，项目的docker可能存在问题，有时间的话将会尽快进行修正，望包容。
