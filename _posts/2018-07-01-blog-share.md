@@ -1,0 +1,35 @@
+---
+title: Eclipse下Tomcat+Nginx+Java部署
+date: 2018-07-01 23:15:00
+description: Eclipse下Tomcat+Nginx+Java部署
+categories:
+ - share
+tags: 
+- tomcat
+- nginx
+---
+
+[Asg_RH]: https://raw.githubusercontent.com/Eros-L/Eros-L.github.io/master/_posts/image/Asg_RH.png
+[Asg_RH_sequence]: https://raw.githubusercontent.com/Eros-L/Eros-L.github.io/master/_posts/image/Asg_RH_sequence.png
+[Asg_RH_class]: https://raw.githubusercontent.com/Eros-L/Eros-L.github.io/master/_posts/image/Asg_RH_class.png
+[Asg_RH_package]: https://raw.githubusercontent.com/Eros-L/Eros-L.github.io/master/_posts/image/Asg_RH_package.png
+
+## Eclipse下Tomcat+Nginx+Java部署
+
+----------
+
+### 1、使用 ECB 实现 make reservation 用例的详细设计（包含用例简介，顺序图，类图）
+
+* 用例简介
+![image][Asg_RH]
+<br />
+* 顺序图
+![image][Asg_RH_sequence]
+<br />
+* 类图
+![image][Asg_RH_class]
+<br />
+### 2、将逻辑设计类图映射到实际项目框架的包图。用树形结构表述实现的包和类
+
+![image][Asg_RH_package]
+<br />
